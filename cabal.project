@@ -32,9 +32,13 @@ optional-packages: vendored/*/*.cabal
 
 tests: true
 
+with-compiler: /home/adam/src/ghc/ghc-8.10/_build/stage1/bin/ghc
+
 package *
   ghc-options: -haddock
   test-show-details: direct
+package ghcide
+  -- executable-static: true
 
 write-ghc-environment-files: never
 

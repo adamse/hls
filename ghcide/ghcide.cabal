@@ -298,6 +298,7 @@ executable ghcide
                 -- disable idle GC
                 -- increase nursery size
                 "-with-rtsopts=-I0 -A128M"
+                -optl=-export-dynamic
     main-is: Main.hs
     build-depends:
         hiedb,
