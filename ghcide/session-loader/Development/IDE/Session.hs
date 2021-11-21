@@ -579,7 +579,7 @@ newComponentCache
          -> ComponentInfo
          -> IO ( [TargetDetails], (IdeResult HscEnvEq, DependencyInfo))
 newComponentCache logger exts cradlePath cfp hsc_env uids ci = do
-    let df = componentDynFlags ci
+    let df = gopt_set (componentDynFlags ci) Opt_PreferDynamicLoader
     let hscEnv' = hscSetFlags df hsc_env
                           { hsc_IC = (hsc_IC hsc_env) { ic_dflags = df } }
 
