@@ -410,6 +410,32 @@ diagnosticTests = testGroup "diagnostics"
           , [(DsError, (1, 7), "Cyclic module dependency between ModuleA, ModuleB")]
           )
         ]
+  , testSessionWait "module graph with hs-boot files" $ do
+      let contentA = T.unlines
+            [ "module ModuleA where"
+            , "import {-# SOURCE #-} ModuleB"
+            ]
+      let contentB = T.unlines
+            [ "{-# OPTIONS -Wmissing-signatures#-}"
+            , "module ModuleB where"
+            , "import ModuleA"
+            ]
+      let contentBboot = T.unlines
+            [ "module ModuleB where"
+            ]
+      let contentC = T.unlines
+            [ "module ModuleC where"
+            , "import ModuleA"
+            , "import ModuleB"
+            -- introduce an artificial diagnostic
+            , "foo = ()"
+            ]
+      _ <- createDoc "ModuleA.hs" "haskell" contentA
+      _ <- createDoc "ModuleB.hs" "haskell" contentB
+      _ <- createDoc "ModuleB.hs-boot" "haskell" contentBboot
+      _ <- createDoc "ModuleC.hs" "haskell" contentC
+      expectDiagnostics [("ModuleC.hs", [(DsWarning, (4,0), "Top-level binding")])]
+
   , testSession' "deeply nested cyclic module dependency" $ \path -> do
       let contentA = unlines
             [ "module ModuleA where" , "import ModuleB" ]
@@ -4018,6 +4044,7 @@ thTests =
         _ <- createDoc "B.hs" "haskell" sourceB
         return ()
     , thReloadingTest False
+    , thLoadingTest
     , ignoreInWindowsBecause "Broken in windows" $ thReloadingTest True
     -- Regression test for https://github.com/haskell/haskell-language-server/issues/891
     , thLinkingTest False
@@ -4054,6 +4081,14 @@ thTests =
     _ <- openDoc cPath "haskell"
     expectDiagnostics [ ( cPath, [(DsWarning, (3, 0), "Top-level binding with no type signature: a :: A")] ) ]
     ]
+
+-- | Test that all modules have linkables
+thLoadingTest :: TestTree
+thLoadingTest = testCase "Loading linkables" $ runWithExtraFiles "THLoading" $ \dir -> do
+    let thb = dir </> "THB.hs"
+    _ <- openDoc thb "haskell"
+    expectDiagnostics [ ( thb, [(DsWarning, (4, 0), "Top-level binding with no type signature: a :: ()")] ) ]
+
 
 -- | test that TH is reevaluated on typecheck
 thReloadingTest :: Bool -> TestTree
